@@ -1,5 +1,6 @@
 package br.com.emanuel3k.model
 
+@RegisterForReflection
 data class Email(
     val id: Long,
     val sender: String,
