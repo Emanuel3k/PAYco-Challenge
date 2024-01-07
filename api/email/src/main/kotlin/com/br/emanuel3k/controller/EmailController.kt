@@ -1,12 +1,17 @@
 package com.br.emanuel3k.controller
 
+import com.br.emanuel3k.dto.EmailForm
+import com.br.emanuel3k.mapper.EmailFormMapper
 import com.br.emanuel3k.model.Email
 import com.br.emanuel3k.service.EmailService
 import io.smallrye.mutiny.Multi
 import io.smallrye.mutiny.Uni
 import jakarta.inject.Inject
 import jakarta.validation.Valid
-import jakarta.ws.rs.*
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.core.Response
 import org.eclipse.microprofile.reactive.messaging.Channel
 import org.eclipse.microprofile.reactive.messaging.Emitter
@@ -19,6 +24,9 @@ class EmailController {
 
     @Inject
     private lateinit var emailService: EmailService
+
+    @Inject
+    private lateinit var emailFormMapper: EmailFormMapper
 
     @Channel("process-email")
     private lateinit var emitter: Emitter<Email>
@@ -38,13 +46,18 @@ class EmailController {
     }
 
     @POST
-    fun postEmail(@Valid email: Email): Uni<Response> {
-        return emailService.postEmail(email).onItem().transform { id ->
-            URI.create("$id")
+    fun postEmail(@Valid emailForm: EmailForm): Uni<Response> {
+        return emailService.postEmail(emailForm).onItem().transform { e ->
+            emitter.send(e)
+            URI.create("${e.id}")
         }.onItem().transform { uri ->
-            emitter.send(email)
             Response.created(uri).build()
         }
+    }
+
+    @Incoming("emails")
+    fun updateEmail(id: String) {
+        emailService.updateEmail(id.toLong())
     }
 
     /*@DELETE
