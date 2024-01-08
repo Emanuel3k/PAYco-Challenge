@@ -1,5 +1,7 @@
 package com.br.emanuel3k.controller
 
+import com.br.emanuel3k.dto.EmailForm
+import com.br.emanuel3k.mapper.EmailFormMapper
 import com.br.emanuel3k.model.Email
 import com.br.emanuel3k.service.EmailService
 import io.smallrye.mutiny.Multi
@@ -22,6 +24,9 @@ class EmailController {
     @Inject
     private lateinit var emailService: EmailService
 
+    @Inject
+    private lateinit var emailFormMapper: EmailFormMapper
+
     @Channel("process-email")
     private lateinit var emitter: Emitter<Email>
 
@@ -40,13 +45,18 @@ class EmailController {
     }
 
     @POST
-    fun postEmail(@Valid email: Email): Uni<Response> {
-        return emailService.postEmail(email).onItem().transform { id ->
-            URI.create("$id")
+    fun postEmail(@Valid emailForm: EmailForm): Uni<Response> {
+        return emailService.postEmail(emailForm).onItem().transform { e ->
+            emitter.send(e)
+            URI.create("${e.id}")
         }.onItem().transform { uri ->
-            emitter.send(email)
             Response.created(uri).build()
         }
+    }
+
+    @Incoming("emails")
+    fun updateEmail(id: String) {
+        emailService.updateEmail(id.toLong())
     }
 
     /*@DELETE

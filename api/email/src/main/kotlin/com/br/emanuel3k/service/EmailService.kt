@@ -1,5 +1,7 @@
 package com.br.emanuel3k.service
 
+import com.br.emanuel3k.dto.EmailForm
+import com.br.emanuel3k.mapper.EmailFormMapper
 import com.br.emanuel3k.model.Email
 import com.br.emanuel3k.repository.EmailRepository
 import io.smallrye.mutiny.Multi
@@ -15,12 +17,11 @@ import jakarta.validation.Valid
 @ApplicationScoped
 class EmailService : EmailRepository {
 
-    companion object {
-        var id: Long = 0
-    }
-
     @Inject
     private lateinit var pgPool: PgPool
+
+    @Inject
+    private lateinit var emailFormMapper: EmailFormMapper
 
     override fun from(row: Row): Email {
         val email = Email()
@@ -57,8 +58,9 @@ class EmailService : EmailRepository {
             }
     }
 
-    override fun postEmail(@Valid email: Email): Uni<Long> {
-        email.id = id++
+    override fun postEmail(@Valid emailDto: EmailForm): Uni<Email> {
+
+        val email = emailFormMapper.map(emailDto)
 
         val future =
             pgPool.preparedQuery(
@@ -67,8 +69,8 @@ class EmailService : EmailRepository {
             ).execute(Tuple.of(email.id, email.sender, email.recipient, email.subject, email.body, email.delivered))
         val uni = Uni.createFrom().completionStage(future.toCompletionStage())
 
-        return uni.onItem().transform { set ->
-            set.iterator().next().getLong("id")
+        return uni.onItem().transform {
+            email
         }
     }
 

@@ -1,35 +1,32 @@
 package com.br.emanuel3k.model
 
-import io.quarkus.hibernate.reactive.panache.kotlin.PanacheEntity
-import io.quarkus.runtime.annotations.RegisterForReflection
-import jakarta.persistence.Cacheable
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.validation.constraints.NotEmpty
-import jakarta.validation.constraints.Size
+import io.quarkus.hibernate.reactive.panache.kotlin.PanacheEntityBase
+import jakarta.persistence.*
 
 
 @Entity
-@Cacheable
-@RegisterForReflection
-class Email : PanacheEntity() {
+@Table
+class Email : PanacheEntityBase {
+
+    companion object {
+        var autoId: Long = 0
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column
+    var id: Long = autoId++
 
     @Column
-    @field:NotEmpty
     lateinit var sender: String
 
     @Column
-    @field:NotEmpty
     lateinit var recipient: String
 
     @Column
-    @field:NotEmpty
-    @field:Size(min = 10)
     lateinit var subject: String
 
-    @Column
-    @field:NotEmpty
-    @field:Size(min = 5)
+    @Column(columnDefinition = "TEXT")
     lateinit var body: String
 
     @Column
