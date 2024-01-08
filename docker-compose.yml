@@ -40,7 +40,7 @@ services:
       - email-application
 
   email-consumer:
-    image: api/email/email-consumer:latest-${QUARKUS_MODE:-jvm}
+    image: api/email-producer/email-consumer:latest-${QUARKUS_MODE:-jvm}
     build: 
       context: api/email-processor/
       dockerfile: src/main/docker/Dockerfile.jvm
