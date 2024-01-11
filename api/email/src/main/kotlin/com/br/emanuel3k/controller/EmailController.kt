@@ -1,70 +1,61 @@
 package com.br.emanuel3k.controller
 
 import com.br.emanuel3k.dto.EmailForm
-import com.br.emanuel3k.mapper.EmailFormMapper
 import com.br.emanuel3k.model.Email
 import com.br.emanuel3k.service.EmailService
-import io.smallrye.mutiny.Multi
 import io.smallrye.mutiny.Uni
-import jakarta.inject.Inject
+import jakarta.enterprise.context.ApplicationScoped
 import jakarta.validation.Valid
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.Response
 import org.eclipse.microprofile.reactive.messaging.Channel
 import org.eclipse.microprofile.reactive.messaging.Emitter
 import java.net.URI
+import java.util.*
 
 
-@Path("api/email")
-class EmailController {
-
-    @Inject
-    private lateinit var emailService: EmailService
-
-    @Inject
-    private lateinit var emailFormMapper: EmailFormMapper
-
-    @Channel("process-email")
-    private lateinit var emitter: Emitter<Email>
-
+@ApplicationScoped
+@Path("api/emails")
+class EmailController(
+    private var emailService: EmailService,
+) {
     @GET
-    fun getAllEmail(): Multi<Email> {
-        return emailService.getAllEmail()
+    fun getAll(): Uni<List<Email>> {
+        return emailService.getAll()
     }
 
     @GET
-    @Path("/{id}")
-    fun findById(@PathParam("id") id: Long): Uni<Response> {
+    @Path("/id/{id}")
+    fun findById(@PathParam("id") id: UUID): Uni<Any> {
         return emailService.findById(id).onItem().transform { e ->
-            if (e != null) Response.ok(e)
-            else Response.status(Response.Status.NOT_FOUND)
-        }.onItem().transform(Response.ResponseBuilder::build)
+            e ?: Response.status(Response.Status.NOT_FOUND).entity("Email with id: $id not exists").build()
+        }
     }
 
     @POST
-    fun postEmail(@Valid emailForm: EmailForm): Uni<Response> {
-        return emailService.postEmail(emailForm).onItem().transform { e ->
-            emitter.send(e)
-            URI.create("${e.id}")
+    fun create(@Valid emailForm: EmailForm): Uni<Response> {
+        return emailService.create(emailForm).onItem().transform { e ->
+            URI.create("/api/emails/${e.id}")
         }.onItem().transform { uri ->
             Response.created(uri).build()
         }
     }
 
-    @Incoming("emails")
-    fun updateEmail(id: String) {
-        emailService.updateEmail(id.toLong())
+    @PUT
+    @Path("/{id}")
+    fun updateEmail(@PathParam("id") id: UUID): Uni<Any> {
+        return emailService.update(id).onItem().transform { e ->
+            e ?: Response.status(Response.Status.NOT_FOUND).entity("Email with id: $id not exists").build()
+        }
     }
 
     /*@DELETE
     @Path("/{id}")
-    fun deleteEmail(@PathParam("id") id: Long): Uni<Response> {
-        return emailService.deleteEmail(id).onItem().transform { e ->
-            if (e) Response.status(Response.Status.NO_CONTENT)
-            else Response.status(Response.Status.NOT_FOUND)
-        }.onItem().transform(Response.ResponseBuilder::build)
+    fun delete(@PathParam("id") id: UUID): Uni<Response> {
+        return emailService.deleteById(id).onItem().transform {
+            Response.noContent().build()
+        }
     }*/
+
 }
+
