@@ -9,7 +9,6 @@ class EmailFormMapper : Mapper<EmailForm, Email> {
 
     override fun map(t: EmailForm): Email {
         val email = Email()
-        email.sender = t.sender
         email.recipient = t.recipient
         email.subject = t.subject
         email.body = t.body

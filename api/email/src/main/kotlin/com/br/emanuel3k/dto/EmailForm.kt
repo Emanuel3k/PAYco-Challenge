@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.Size
 
 data class EmailForm(
-    @field:NotEmpty
-    @field:Email val sender: String,
 
     @field:NotEmpty
     @field:Email val recipient: String,
