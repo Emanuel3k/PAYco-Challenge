@@ -41,8 +41,7 @@ class EmailController(
         }
     }
 
-    @PUT
-    @Path("/{id}")
+
     fun updateEmail(@PathParam("id") id: UUID): Uni<Any> {
         return emailService.update(id).onItem().transform { e ->
             e ?: Response.status(Response.Status.NOT_FOUND).entity("Email with id: $id not exists").build()
