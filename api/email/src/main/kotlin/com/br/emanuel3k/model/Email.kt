@@ -2,33 +2,22 @@ package com.br.emanuel3k.model
 
 import io.quarkus.hibernate.reactive.panache.kotlin.PanacheEntityBase
 import jakarta.persistence.*
+import java.util.*
 
 
 @Entity
-@Table
 class Email : PanacheEntityBase {
 
-    companion object {
-        var autoId: Long = 0
-    }
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column
-    var id: Long = autoId++
+    @GeneratedValue(strategy = GenerationType.UUID)
+    lateinit var id: UUID
 
-    @Column
-    lateinit var sender: String
-
-    @Column
     lateinit var recipient: String
 
-    @Column
     lateinit var subject: String
 
     @Column(columnDefinition = "TEXT")
     lateinit var body: String
 
-    @Column
     var delivered: Boolean = false
 }

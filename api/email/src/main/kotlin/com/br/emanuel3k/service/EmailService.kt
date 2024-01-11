@@ -4,95 +4,66 @@ import com.br.emanuel3k.dto.EmailForm
 import com.br.emanuel3k.mapper.EmailFormMapper
 import com.br.emanuel3k.model.Email
 import com.br.emanuel3k.repository.EmailRepository
-import io.smallrye.mutiny.Multi
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction
 import io.smallrye.mutiny.Uni
-import io.vertx.pgclient.PgPool
-import io.vertx.sqlclient.Row
-import io.vertx.sqlclient.Tuple
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.inject.Inject
 import jakarta.validation.Valid
+import org.eclipse.microprofile.reactive.messaging.Channel
+import org.eclipse.microprofile.reactive.messaging.Emitter
+import org.eclipse.microprofile.reactive.messaging.Incoming
+import java.util.*
 
 
 @ApplicationScoped
-class EmailService : EmailRepository {
+class EmailService(
+    private val emailFormMapper: EmailFormMapper,
+    @Channel("process-email")
+    private val emitter: Emitter<Email>,
+) : EmailRepository {
 
-    @Inject
-    private lateinit var pgPool: PgPool
+    /*Por algum motivo a conexão com o banco é fechada se não tiver o return sem finalizar a ação, e se tiver alguma
+    ação sendo feita antes do return tb, então resolvi isso com a anotação @WithTransaction*/
 
-    @Inject
-    private lateinit var emailFormMapper: EmailFormMapper
-
-    override fun from(row: Row): Email {
-        val email = Email()
-        email.id = row.getLong("id")
-        email.sender = row.getString("sender")
-        email.recipient = row.getString("recipient")
-        email.subject = row.getString("subject")
-        email.body = row.getString("body")
-        email.delivered = row.getBoolean("delivered")
-        return email
+    @WithTransaction
+    override fun getAll(): Uni<List<Email>> {
+        return this.listAll()
     }
 
-    override fun getAllEmail(): Multi<Email> {
-        val future = pgPool.preparedQuery("select * from email").execute()
-        val uni = Uni.createFrom().completionStage(future.toCompletionStage())
-
-        return uni.onItem()
-            .transformToMulti { set ->
-                Multi.createFrom().iterable(set)
-            }.onItem().transform { row ->
-                from(row)
-            }
+    @WithTransaction
+    override fun findById(id: UUID): Uni<Email?> {
+        return this.find("id", id).firstResult()
     }
 
-    override fun findById(id: Long): Uni<Email> {
-        val future = pgPool.preparedQuery("select * from email where id = $1")
-            .execute(Tuple.of(id))
-        val uni = Uni.createFrom().completionStage(future.toCompletionStage())
-
-        return uni.onItem()
-            .transform { rows ->
-                if (rows.iterator().hasNext()) from(rows.iterator().next())
-                else null
-            }
+    @WithTransaction
+    override fun create(@Valid emailForm: EmailForm): Uni<Email> {
+        val email = emailFormMapper.map(emailForm)
+        emitter.send(email)
+        return this.persist(email)
     }
 
-    override fun postEmail(@Valid emailDto: EmailForm): Uni<Email> {
 
-        val email = emailFormMapper.map(emailDto)
+    @Incoming("emails")
+    @WithTransaction
+    override fun update(id: UUID): Uni<Email?> {
+        val email = findById(id)
 
-        val future =
-            pgPool.preparedQuery(
-                "INSERT INTO email (id, sender, recipient, subject, body, delivered) VALUES ($1, $2, $3, $4, $5, $6) " +
-                        "RETURNING id"
-            ).execute(Tuple.of(email.id, email.sender, email.recipient, email.subject, email.body, email.delivered))
-        val uni = Uni.createFrom().completionStage(future.toCompletionStage())
-
-        return uni.onItem().transform {
-            email
+        return email.onItem().transform { e ->
+            if (e != null) {
+                e.delivered = true
+                this.persistAndFlush(e)
+                e
+            } else e
         }
     }
 
-    override fun updateEmail(id: Long): Uni<Long> {
-        val future = pgPool.preparedQuery("UPDATE email SET delivered = $1 WHERE id=$2 RETURNING id")
-            .execute(Tuple.of(true, id))
-        val uni = Uni.createFrom().completionStage(future.toCompletionStage())
 
-        return uni.onItem().transform { set ->
-            set.iterator().next().getLong("id")
-        }
-    }
+    // METHOD WITH PROBLEM
+    /* @WithTransaction
+     fun deleteById(id: UUID): Uni<Void>? {
+         val email = findById(id)
 
-    /*fun deleteEmail(id: Long): Uni<Boolean> {
-        val future = pgPool.preparedQuery("DELETE FROM email WHERE id = $1")
-            .execute(Tuple.of(id))
-        val uni = Uni.createFrom().completionStage(future.toCompletionStage())
-
-        return uni.onItem().transform { set ->
-            set.rowCount() == 1
-        }
-    }*/
-
-
+         return email.onItem().transformToUni { e ->
+             e?.let { this.delete(it) }
+         }
+     }*/
 }
