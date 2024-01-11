@@ -11,8 +11,8 @@ import java.util.*
 @ApplicationScoped
 interface EmailRepository : PanacheRepository<Email> {
     fun getAll(): Uni<List<Email>>
-    fun findById(id: UUID): Uni<Email?>
-    fun create(@Valid emailForm: EmailForm): Uni<Email>
-    fun update(id: UUID): Uni<Email?>
+    fun findById(id: String): Uni<Email?>
+    fun create(@Valid emailForm: EmailForm): Uni<String>
+    fun update(id: String): Uni<Email?>
 //    fun deleteById(id: UUID): Uni<Response>
 }

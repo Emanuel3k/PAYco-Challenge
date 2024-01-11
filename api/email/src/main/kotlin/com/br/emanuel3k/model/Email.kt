@@ -1,16 +1,18 @@
 package com.br.emanuel3k.model
 
 import io.quarkus.hibernate.reactive.panache.kotlin.PanacheEntityBase
+import io.quarkus.runtime.annotations.RegisterForReflection
 import jakarta.persistence.*
 import java.util.*
 
 
 @Entity
+@RegisterForReflection
 class Email : PanacheEntityBase {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    lateinit var id: UUID
+    lateinit var id: String
 
     lateinit var recipient: String
 

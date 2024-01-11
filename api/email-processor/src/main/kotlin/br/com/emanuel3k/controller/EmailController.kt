@@ -12,7 +12,7 @@ class EmailController(
     private var emailService: EmailService,
 ) {
 
-    fun process(event: JsonObject): Uni<UUID> {
+    fun process(event: JsonObject): Uni<String> {
         return emailService.sendEmail(event)
     }
 }

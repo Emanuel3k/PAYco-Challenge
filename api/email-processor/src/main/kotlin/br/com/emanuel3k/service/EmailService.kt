@@ -9,17 +9,15 @@ import io.vertx.core.json.JsonObject
 import jakarta.enterprise.context.ApplicationScoped
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import org.eclipse.microprofile.reactive.messaging.Outgoing
-import java.util.*
 
 @ApplicationScoped
 class EmailService(
     private val mailer: ReactiveMailer,
 ) {
 
-
     @Incoming("requests")
     @Outgoing("emails")
-    fun sendEmail(event: JsonObject): Uni<UUID> {
+    fun sendEmail(event: JsonObject): Uni<String> {
         val eventEmail = Gson().fromJson(event.toString(), Email::class.java)
 
         return mailer.send(

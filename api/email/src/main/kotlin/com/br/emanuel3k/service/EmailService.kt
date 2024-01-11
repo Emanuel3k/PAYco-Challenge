@@ -11,14 +11,13 @@ import jakarta.validation.Valid
 import org.eclipse.microprofile.reactive.messaging.Channel
 import org.eclipse.microprofile.reactive.messaging.Emitter
 import org.eclipse.microprofile.reactive.messaging.Incoming
-import java.util.*
 
 
 @ApplicationScoped
 class EmailService(
-    private val emailFormMapper: EmailFormMapper,
     @Channel("process-email")
     private val emitter: Emitter<Email>,
+    private val emailFormMapper: EmailFormMapper,
 ) : EmailRepository {
 
     /*Por algum motivo a conexão com o banco é fechada se não tiver o return sem finalizar a ação, e se tiver alguma
@@ -30,21 +29,24 @@ class EmailService(
     }
 
     @WithTransaction
-    override fun findById(id: UUID): Uni<Email?> {
+    override fun findById(id: String): Uni<Email?> {
         return this.find("id", id).firstResult()
     }
 
     @WithTransaction
-    override fun create(@Valid emailForm: EmailForm): Uni<Email> {
+    override fun create(@Valid emailForm: EmailForm): Uni<String> {
         val email = emailFormMapper.map(emailForm)
-        emitter.send(email)
-        return this.persist(email)
+        return this.persist(email).onItem().transform {
+            println(email.id)
+            emitter.send(email)
+            email.id
+        }
     }
 
 
     @Incoming("emails")
     @WithTransaction
-    override fun update(id: UUID): Uni<Email?> {
+    override fun update(id: String): Uni<Email?> {
         val email = findById(id)
 
         return email.onItem().transform { e ->

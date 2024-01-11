@@ -6,10 +6,11 @@ import com.br.emanuel3k.service.EmailService
 import io.smallrye.mutiny.Uni
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.validation.Valid
-import jakarta.ws.rs.*
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.core.Response
-import org.eclipse.microprofile.reactive.messaging.Channel
-import org.eclipse.microprofile.reactive.messaging.Emitter
 import java.net.URI
 import java.util.*
 
@@ -26,7 +27,7 @@ class EmailController(
 
     @GET
     @Path("/id/{id}")
-    fun findById(@PathParam("id") id: UUID): Uni<Any> {
+    fun findById(@PathParam("id") id: String): Uni<Any> {
         return emailService.findById(id).onItem().transform { e ->
             e ?: Response.status(Response.Status.NOT_FOUND).entity("Email with id: $id not exists").build()
         }
@@ -35,16 +36,17 @@ class EmailController(
     @POST
     fun create(@Valid emailForm: EmailForm): Uni<Response> {
         return emailService.create(emailForm).onItem().transform { e ->
-            URI.create("/api/emails/${e.id}")
+            URI.create("/api/emails/$e")
         }.onItem().transform { uri ->
             Response.created(uri).build()
         }
     }
 
 
-    fun updateEmail(@PathParam("id") id: UUID): Uni<Any> {
+    fun updateEmail(@PathParam("id") id: String): Uni<Any> {
         return emailService.update(id).onItem().transform { e ->
-            e ?: Response.status(Response.Status.NOT_FOUND).entity("Email with id: $id not exists").build()
+            e ?: Response.status(Response.Status.NOT_FOUND)
+                .entity("Email with id: $id not exists").build()
         }
     }
 
