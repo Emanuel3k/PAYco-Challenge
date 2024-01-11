@@ -2,16 +2,17 @@ package com.br.emanuel3k.repository
 
 import com.br.emanuel3k.dto.EmailForm
 import com.br.emanuel3k.model.Email
-import io.smallrye.mutiny.Multi
+import io.quarkus.hibernate.reactive.panache.kotlin.PanacheRepository
 import io.smallrye.mutiny.Uni
-import io.vertx.sqlclient.Row
+import jakarta.enterprise.context.ApplicationScoped
 import jakarta.validation.Valid
+import java.util.*
 
-interface EmailRepository {
-    fun from(row: Row): Email
-    fun getAllEmail(): Multi<Email>
-    fun findById(id: Long): Uni<Email>
-    fun postEmail(@Valid emailDto: EmailForm): Uni<Email>
-    fun updateEmail(id: Long): Uni<Long>
-//    fun deleteEmail(id: Long): Uni<Boolean>
+@ApplicationScoped
+interface EmailRepository : PanacheRepository<Email> {
+    fun getAll(): Uni<List<Email>>
+    fun findById(id: UUID): Uni<Email?>
+    fun create(@Valid emailForm: EmailForm): Uni<Email?>
+    fun update(id: UUID): Uni<Email?>
+//    fun deleteById(id: UUID): Uni<Response>
 }
