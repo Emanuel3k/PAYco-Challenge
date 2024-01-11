@@ -4,21 +4,15 @@ import br.com.emanuel3k.service.EmailService
 import io.smallrye.mutiny.Uni
 import io.vertx.core.json.JsonObject
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.inject.Inject
-import org.eclipse.microprofile.reactive.messaging.Incoming
-import org.eclipse.microprofile.reactive.messaging.Outgoing
+import java.util.*
 
 
 @ApplicationScoped
-class EmailController {
+class EmailController(
+    private var emailService: EmailService,
+) {
 
-    @Inject
-    private lateinit var emailService: EmailService
-
-    @Incoming("requests")
-    @Outgoing("emails")
-    fun process(event: JsonObject): Uni<Long> {
-        Thread.sleep(5000)
+    fun process(event: JsonObject): Uni<UUID> {
         return emailService.sendEmail(event)
     }
 }
