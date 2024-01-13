@@ -12,7 +12,7 @@ class Email : PanacheEntityBase {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    lateinit var id: String
+    lateinit var id: UUID
 
     lateinit var recipient: String
 
