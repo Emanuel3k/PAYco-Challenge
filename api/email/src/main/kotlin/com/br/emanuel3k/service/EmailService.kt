@@ -8,9 +8,12 @@ import io.quarkus.hibernate.reactive.panache.common.WithTransaction
 import io.smallrye.mutiny.Uni
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.validation.Valid
+import jakarta.ws.rs.core.Response
 import org.eclipse.microprofile.reactive.messaging.Channel
 import org.eclipse.microprofile.reactive.messaging.Emitter
 import org.eclipse.microprofile.reactive.messaging.Incoming
+import java.net.URI
+import java.util.*
 
 
 @ApplicationScoped
@@ -20,46 +23,42 @@ class EmailService(
     private val emailFormMapper: EmailFormMapper,
 ) : EmailRepository {
 
-    /*Por algum motivo a conexão com o banco é fechada se não tiver o return sem finalizar a ação, e se tiver alguma
-    ação sendo feita antes do return tb, então resolvi isso com a anotação @WithTransaction*/
-
-    @WithTransaction
     override fun getAll(): Uni<List<Email>> {
         return this.listAll()
     }
 
-    @WithTransaction
-    override fun findById(id: String): Uni<Email?> {
+    override fun findById(id: UUID): Uni<Response> {
         return this.find("id", id).firstResult()
+            .onItem().transform { e ->
+                e?.let { Response.ok(it).build() }
+                    ?: Response.status(Response.Status.NOT_FOUND)
+                        .entity("Email with id: $id not exists").build()
+            }
     }
 
     @WithTransaction
-    override fun create(@Valid emailForm: EmailForm): Uni<String> {
+    override fun create(@Valid emailForm: EmailForm): Uni<Response> {
         val email = emailFormMapper.map(emailForm)
         return this.persist(email).onItem().transform {
-            println(email.id)
             emitter.send(email)
-            email.id
+            URI.create("/api/emails/${email.id}")
+        }.onItem().transform { uri ->
+            Response.created(uri).build()
         }
     }
-
 
     @Incoming("emails")
     @WithTransaction
-    override fun update(id: String): Uni<Email?> {
-        val email = findById(id)
-
-        return email.onItem().transform { e ->
-            if (e != null) {
-                e.delivered = true
-                this.persistAndFlush(e)
-                e
-            } else e
-        }
+    override fun update(id: String): Uni<Email> {
+        return find("id", UUID.fromString(id))
+            .firstResult().onItem().transformToUni { e ->
+                e?.let {
+                    e.delivered = true
+                    this.persistAndFlush(e)
+                }
+            }
     }
 
-
-    // METHOD WITH PROBLEM
     /* @WithTransaction
      fun deleteById(id: UUID): Uni<Void>? {
          val email = findById(id)

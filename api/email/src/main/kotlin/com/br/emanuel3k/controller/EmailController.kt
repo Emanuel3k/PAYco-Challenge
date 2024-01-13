@@ -11,7 +11,6 @@ import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.core.Response
-import java.net.URI
 import java.util.*
 
 
@@ -27,26 +26,24 @@ class EmailController(
 
     @GET
     @Path("/id/{id}")
-    fun findById(@PathParam("id") id: String): Uni<Any> {
-        return emailService.findById(id).onItem().transform { e ->
-            e ?: Response.status(Response.Status.NOT_FOUND).entity("Email with id: $id not exists").build()
+    fun findById(@PathParam("id") id: UUID): Uni<Response> {
+        return try {
+            emailService.findById(id)
+        } catch (e: Exception) {
+            Uni.createFrom().item {
+                Response.serverError().entity(e).build()
+            }
         }
     }
 
     @POST
     fun create(@Valid emailForm: EmailForm): Uni<Response> {
-        return emailService.create(emailForm).onItem().transform { e ->
-            URI.create("/api/emails/$e")
-        }.onItem().transform { uri ->
-            Response.created(uri).build()
-        }
-    }
-
-
-    fun updateEmail(@PathParam("id") id: String): Uni<Any> {
-        return emailService.update(id).onItem().transform { e ->
-            e ?: Response.status(Response.Status.NOT_FOUND)
-                .entity("Email with id: $id not exists").build()
+        return try {
+            emailService.create(emailForm)
+        } catch (e: Exception) {
+            Uni.createFrom().item {
+                Response.serverError().entity(e).build()
+            }
         }
     }
 
