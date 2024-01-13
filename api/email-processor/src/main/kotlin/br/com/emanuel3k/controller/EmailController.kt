@@ -11,8 +11,7 @@ import java.util.*
 class EmailController(
     private var emailService: EmailService,
 ) {
-
-    fun process(event: JsonObject): Uni<String> {
+    fun process(event: JsonObject): Uni<UUID> {
         return emailService.sendEmail(event)
     }
 }
